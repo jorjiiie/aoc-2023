@@ -16,7 +16,7 @@ let read_file file =
 
 exception CustomException of string
 
-let order_char = "AKQJ98765432J"
+let order_char = "AKQT98765432J"
 
 let char_comp a b = 
   let rec help idx = 
@@ -30,7 +30,6 @@ let char_comp a b =
 
 
 
-
 let sort_string_lexicographically str =
   let char_list = List.of_seq (String.to_seq str) in
   let sorted_list = List.sort Char.compare char_list in
@@ -38,39 +37,60 @@ let sort_string_lexicographically str =
 
 let cust_cmp a b = (a = b) || (a = 'J') || (b = 'J')
 
+
 let is_seq_eq hand idx cnt = 
   let str = sort_string_lexicographically hand in
   let rec help cur stop =
     if cur >= stop then true else 
-      if cust_cmp str.[cur] str.[cur-1] then help (cur+1) stop else false
+      if str.[cur] = str.[cur-1] then help (cur+1) stop else false
   in 
   help (idx+1) (idx+cnt)
 
+let count_max hand = 
+  let str = List.of_seq (String.to_seq (sort_string_lexicographically hand)) in  
+  let rec help cur prv mx l =
+    match cur with 
+    | [] -> mx 
+    | first :: rest -> (* if its J ignore here*)
+        if first = 'J' then help rest first (max mx l) 0 else
+          if first = prv then 
+            help rest first (max mx (l+1)) (l+1) else 
+              help rest first (max mx l) 1
+  in 
+  let count_j s = 
+    length (filter (fun x -> x = 'J') s)
+  in 
+  (count_j str) + (help str 'p' 0 0)
+
+
 (* these all take strings *)
 let is_five hand = 
-  is_seq_eq hand 0 5
-
-
-let is_four hand = 
-  (is_seq_eq hand 0 4) || (is_seq_eq hand 1 4) 
-
-let is_full hand = 
-  ((is_seq_eq hand 0 3) && (is_seq_eq hand 3 2)) ||
-  ((is_seq_eq hand 0 2) && (is_seq_eq hand 2 3))
-
-let is_three hand = 
-  (is_seq_eq hand 0 3) || (is_seq_eq hand 1 3) || (is_seq_eq hand 2 3)
-
+  (count_max hand) = 5
 
 let count_pairs str = 
   let arr = sort_string_lexicographically str in
-  snd (fold_left (fun (a, b) c -> if cust_cmp a c then (c, b + 1) else (c, b)) ('z', 0) (List.of_seq(String.to_seq arr)))
+  snd (fold_left (fun (a, b) c -> if a=c then (c, b + 1) else (c, b)) ('z', 0) (List.of_seq(String.to_seq arr)))
 
-let is_two hand = 
+let is_four hand = 
+  (count_max hand) = 4
+
+let is_full hand = 
+  let str = sort_string_lexicographically hand in 
+  let count_j s = 
+    length (filter (fun x -> x = 'J') s)
+  in 
+  (count_j (List.of_seq (String.to_seq str)) > 0 && (count_max hand) = 3 && (count_pairs hand) >= 2) ||
+  (is_seq_eq hand 0 3) && (is_seq_eq hand 3 2) ||
+  (is_seq_eq hand 0 2) && (is_seq_eq hand 2 3)
+
+let is_three hand = 
+  (count_max hand) = 3
+
+let is_two hand = (* the jack would catch anything here?? either jack and single or an actual pair*)
   count_pairs hand = 2
 
 let is_one hand = 
-  count_pairs hand = 1
+  (max ((count_max hand)/2) (count_pairs hand)) = 1
 
 let high hand = true
 
@@ -91,7 +111,6 @@ let comp a b =
   let rec c_help cur x y = 
     match cur with 
     | [] -> 
-        printf "whats going on %s %s\n" a b;
         raise (CustomException "no bueno!")
     | first :: rest -> 
         let res_a = first x in 
@@ -119,14 +138,11 @@ let rec accum lst idx =
 
 
 
-let inp = read_file "in2.txt"
+let inp = read_file "in.txt"
+
     |> map split_inp 
     |> sort (fun a b -> (comp (fst a) (fst b)))
 
 let () = iter (fun x -> printf "%s :: %d\n" (fst x) (snd x)) inp
-let () = printf "part 1 = %d\n" (accum inp 1)
-
-
-
-let () = printf "%b" (is_four "KTJJT")
+let () = printf "part 2 = %d\n" (accum inp 1)
 
